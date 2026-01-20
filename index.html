@@ -83,8 +83,8 @@
             <option value="">-- 請選擇題庫 --</option>
             <option value="subject1">壽險考題</option>
             <option value="subject2">產險考題</option>
-            <option value="subject2">金融市場考題</option>
-            <option value="subject2">職業道德考題</option>
+            <option value="subject3">金融市場考題</option>
+            <option value="subject4">職業道德考題</option>
             </select>
         <button onclick="loadSelectedQuiz()" style="padding: 7px 12px; cursor:pointer;">刷新題目</button>
     </div>
@@ -99,9 +99,9 @@
         // --- 這裡設定你的 CSV 網址 ---
         const quizSources = {
             "subject1": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1620305954&single=true&output=csv",
-            "subject1": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=188500512&single=true&output=csv",
-            "subject1": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=706191201&single=true&output=csv",
-            "subject2": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1853621901&single=true&output=csv"
+            "subject2": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=188500512&single=true&output=csv",
+            "subject3": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=706191201&single=true&output=csv",
+            "subject4": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1853621901&single=true&output=csv"
         };
 
         let currentQuestions = [];
@@ -207,5 +207,6 @@
     </script>
 </body>
 </html>
+
 
 
