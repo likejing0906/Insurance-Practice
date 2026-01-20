@@ -3,195 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>保險實務雲端題庫</title>
+    <title>保險考試全能題庫</title>
     <style>
         body {
             font-family: "Microsoft JhengHei", Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f4f4f9;
+            background-color: #f0f2f5;
         }
-        h1 { text-align: center; color: #2c3e50; }
-        
-        .setup-box {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 15px;
-            border-radius: 5px;
+        .header-section {
+            text-align: center;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
             margin-bottom: 20px;
         }
-
+        .selector-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        select {
+            padding: 8px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
         .question-block {
-            background: #fff;
+            background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-
-        .question-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #007bff; }
-        
+        .question-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #1a73e8; }
         .options label {
             display: block;
-            margin: 8px 0;
-            padding: 10px;
+            margin: 10px 0;
+            padding: 12px;
             background: #f8f9fa;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            border: 1px solid #ddd;
+            border: 1px solid #eee;
+            transition: 0.2s;
         }
-        .options label:hover { background: #e2e6ea; }
-
+        .options label:hover { background: #e8f0fe; }
         .result-msg {
-            margin-top: 10px; padding: 10px; font-weight: bold; border-radius: 5px; display: none;
+            margin-top: 10px; padding: 12px; font-weight: bold; border-radius: 6px; display: none;
         }
-        .result-correct { background: #d4edda; color: #155724; }
-        .result-wrong { background: #f8d7da; color: #721c24; }
-
-        button#submit-btn {
-            width: 100%; padding: 15px; font-size: 18px;
+        .result-correct { background: #d4edda; color: #155724; border-left: 5px solid #28a745; }
+        .result-wrong { background: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
+        #submit-btn {
+            width: 100%; padding: 18px; font-size: 20px;
             background: #28a745; color: white; border: none;
-            border-radius: 5px; cursor: pointer; margin-top: 20px;
+            border-radius: 8px; cursor: pointer; margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        button#submit-btn:hover { background: #218838; }
-
-        input#sheet-url { width: 100%; padding: 8px; margin-top: 5px; }
+        #submit-btn:hover { background: #218838; }
+        .loading { text-align: center; color: #666; font-style: italic; }
     </style>
 </head>
 <body>
 
-    <h1>☁️ 保險實務雲端題庫</h1>
-
-    <div class="setup-box" id="setup-area">
-        <h3>🔗 設定題庫來源</h3>
-        <p>請貼上 Google 試算表「發布到網路」的 CSV 連結：</p>
-        <input type="text" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
-        <button onclick="loadQuestions()" style="margin-top:10px; padding:5px 15px;">讀取題目</button>
-        <p style="font-size:12px; margin-top:5px;">* 設定一次後，系統會記住連結，下次打開自動讀取。</p>
+    <div class="header-section">
+        <h1>📖 保險考試全能題庫</h1>
     </div>
 
-    <div id="quiz-area"></div>
+    <div class="selector-box">
+        <strong>選擇科目：</strong>
+        <select id="quiz-selector" onchange="loadSelectedQuiz()">
+            <option value="">-- 請選擇題庫 --</option>
+            <option value="subject1">保險實務</option>
+            <option value="subject2">保險法規</option>
+            </select>
+        <button onclick="loadSelectedQuiz()" style="padding: 7px 12px; cursor:pointer;">刷新題目</button>
+    </div>
+
+    <div id="quiz-area">
+        <p class="loading">請從上方選單選擇一個科目開始練習。</p>
+    </div>
+    
     <button id="submit-btn" onclick="checkAnswers()" style="display:none;">交卷對答案</button>
 
     <script>
-        let questions = [];
-
-        // 頁面載入時嘗試讀取舊連結
-        window.onload = function() {
-            const savedUrl = localStorage.getItem('sheet_url');
-            if (savedUrl) {
-                document.getElementById('sheet-url').value = savedUrl;
-                loadQuestions();
-            }
+        // --- 這裡設定你的 CSV 網址 ---
+        const quizSources = {
+            "subject1": "這裡貼上你的【保險實務】CSV網址",
+            "subject2": "這裡貼上你的【保險法規】CSV網址"
         };
 
-        function loadQuestions() {
-            const url = document.getElementById('sheet-url').value.trim();
-            if (!url) { alert("請輸入網址"); return; }
+        let currentQuestions = [];
 
-            // 簡單檢查網址格式
-            if (!url.includes("output=csv")) {
-                alert("網址格式怪怪的喔！請確定你是選擇「發布到網路」並選擇「CSV」格式。");
+        function loadSelectedQuiz() {
+            const select = document.getElementById('quiz-selector');
+            const subjectKey = select.value;
+            const quizArea = document.getElementById('quiz-area');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (!subjectKey) {
+                quizArea.innerHTML = '<p class="loading">請選擇一個科目。</p>';
+                submitBtn.style.display = 'none';
+                return;
             }
 
+            const url = quizSources[subjectKey];
+            quizArea.innerHTML = '<p class="loading">題庫讀取中，請稍候...</p>';
+            submitBtn.style.display = 'none';
+
             fetch(url)
-                .then(response => response.text())
+                .then(res => res.text())
                 .then(text => {
-                    parseCSV(text);
-                    localStorage.setItem('sheet_url', url); // 記住網址
-                    document.getElementById('setup-area').style.display = 'none'; // 隱藏設定區
-                    document.getElementById('submit-btn').style.display = 'block';
+                    parseAndRender(text);
+                    submitBtn.style.display = 'block';
                 })
                 .catch(err => {
-                    alert("讀取失敗！請確認網址正確且已發布到網路。");
-                    console.error(err);
+                    quizArea.innerHTML = '<p style="color:red;">讀取失敗，請確認該試算表是否已「發布到網路」並選擇 CSV 格式。</p>';
                 });
         }
 
-        // 解析 CSV 格式 (處理逗號分隔)
-        function parseCSV(text) {
-            const rows = text.split('\n').map(row => row.trim()).filter(row => row);
-            questions = [];
-
-            // 從第 1 列開始 (跳過標題列第 0 列)
+        function parseAndRender(csvText) {
+            const rows = csvText.split('\n').map(r => r.trim()).filter(r => r);
+            currentQuestions = [];
+            
+            // 從第1列開始讀(跳過標題列)
             for (let i = 1; i < rows.length; i++) {
-                // 簡易 CSV 切割 (注意：若題目內容本身有逗號可能會切錯，建議題目內少用全形逗號)
-                // 這裡使用正規表達式來處理較複雜的 CSV (例如被引號包起來的內容)
                 const cols = parseCSVRow(rows[i]);
-                
                 if (cols.length >= 6) {
-                    questions.push({
+                    currentQuestions.push({
                         title: cols[0],
                         options: [cols[1], cols[2], cols[3], cols[4]],
                         answer: parseInt(cols[5])
                     });
                 }
             }
-            renderQuiz();
+
+            const area = document.getElementById('quiz-area');
+            area.innerHTML = '';
+            currentQuestions.forEach((q, idx) => {
+                let optsHtml = '';
+                q.options.forEach((opt, i) => {
+                    optsHtml += `<label><input type="radio" name="q${idx}" value="${i+1}"> (${i+1}) ${opt}</label>`;
+                });
+                area.innerHTML += `
+                    <div class="question-block">
+                        <div class="question-title">${idx+1}. ${q.title}</div>
+                        <div class="options">${optsHtml}</div>
+                        <div class="result-msg" id="res${idx}"></div>
+                    </div>
+                `;
+            });
         }
 
-        // 處理 CSV 單行解析 (支援引號)
         function parseCSVRow(row) {
             const result = [];
             let current = '';
             let inQuote = false;
             for (let i = 0; i < row.length; i++) {
                 const char = row[i];
-                if (char === '"') { inQuote = !inQuote; }
+                if (char === '"') inQuote = !inQuote;
                 else if (char === ',' && !inQuote) {
                     result.push(current.trim());
                     current = '';
-                } else { current += char; }
+                } else current += char;
             }
             result.push(current.trim());
             return result;
         }
 
-        function renderQuiz() {
-            const area = document.getElementById('quiz-area');
-            area.innerHTML = '';
-            
-            questions.forEach((q, idx) => {
-                let opts = '';
-                q.options.forEach((opt, i) => {
-                    opts += `<label><input type="radio" name="q${idx}" value="${i+1}"> (${i+1}) ${opt}</label>`;
-                });
-
-                area.innerHTML += `
-                    <div class="question-block">
-                        <div class="question-title">${idx+1}. ${q.title}</div>
-                        <div class="options">${opts}</div>
-                        <div class="result-msg" id="res${idx}"></div>
-                    </div>
-                `;
-            });
-            alert(`成功載入 ${questions.length} 題！`);
-        }
-
         function checkAnswers() {
-            let correct = 0;
-            questions.forEach((q, idx) => {
+            let score = 0;
+            currentQuestions.forEach((q, idx) => {
                 const selected = document.querySelector(`input[name="q${idx}"]:checked`);
                 const resDiv = document.getElementById(`res${idx}`);
                 resDiv.style.display = 'block';
                 
                 if (!selected) {
                     resDiv.className = 'result-msg result-wrong';
-                    resDiv.innerHTML = `❌ 未作答 (答案：${q.answer})`;
+                    resDiv.innerHTML = `❌ 未作答 (正確答案是：${q.answer})`;
+                } else if (parseInt(selected.value) === q.answer) {
+                    resDiv.className = 'result-msg result-correct';
+                    resDiv.innerHTML = '✅ 答對了！';
+                    score++;
                 } else {
-                    if (parseInt(selected.value) === q.answer) {
-                        resDiv.className = 'result-msg result-correct';
-                        resDiv.innerHTML = '✅ 答對了';
-                        correct++;
-                    } else {
-                        resDiv.className = 'result-msg result-wrong';
-                        resDiv.innerHTML = `❌ 答錯 (答案：${q.answer} - ${q.options[q.answer-1]})`;
-                    }
+                    resDiv.className = 'result-msg result-wrong';
+                    resDiv.innerHTML = `❌ 答錯了 (正確答案是：${q.answer} - ${q.options[q.answer-1]})`;
                 }
             });
-            alert(`成績：${correct} / ${questions.length}`);
+            window.scrollTo(0, 0);
+            alert(`測驗結束！您的得分是：${Math.round(score/currentQuestions.length*100)} 分`);
         }
     </script>
 </body>
