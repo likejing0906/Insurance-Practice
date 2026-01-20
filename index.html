@@ -45,6 +45,8 @@
             margin-bottom: 20px;
         }
         .question-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #1a73e8; }
+        
+        /* 選項基本樣式 */
         .options label {
             display: block;
             margin: 10px 0;
@@ -52,15 +54,28 @@
             background: #f8f9fa;
             border-radius: 6px;
             cursor: pointer;
-            border: 1px solid #eee;
+            border: 2px solid transparent;
             transition: 0.2s;
         }
         .options label:hover { background: #e8f0fe; }
+
+        /* 對答案時的視覺效果 */
+        .option-correct {
+            background-color: #d4edda !important;
+            border-color: #28a745 !important;
+            font-weight: bold;
+        }
+        .option-wrong {
+            background-color: #f8d7da !important;
+            border-color: #dc3545 !important;
+        }
+
         .result-msg {
             margin-top: 10px; padding: 12px; font-weight: bold; border-radius: 6px; display: none;
         }
         .result-correct { background: #d4edda; color: #155724; border-left: 5px solid #28a745; }
         .result-wrong { background: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
+        
         #submit-btn {
             width: 100%; padding: 18px; font-size: 20px;
             background: #28a745; color: white; border: none;
@@ -85,7 +100,7 @@
             <option value="subject2">產險考題</option>
             <option value="subject3">金融市場考題</option>
             <option value="subject4">職業道德考題</option>
-            </select>
+        </select>
         <button onclick="loadSelectedQuiz()" style="padding: 7px 12px; cursor:pointer;">刷新題目</button>
     </div>
 
@@ -96,7 +111,6 @@
     <button id="submit-btn" onclick="checkAnswers()" style="display:none;">交卷對答案</button>
 
     <script>
-        // --- 這裡設定你的 CSV 網址 ---
         const quizSources = {
             "subject1": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1620305954&single=true&output=csv",
             "subject2": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=188500512&single=true&output=csv",
@@ -137,7 +151,6 @@
             const rows = csvText.split('\n').map(r => r.trim()).filter(r => r);
             currentQuestions = [];
             
-            // 從第1列開始讀(跳過標題列)
             for (let i = 1; i < rows.length; i++) {
                 const cols = parseCSVRow(rows[i]);
                 if (cols.length >= 6) {
@@ -154,7 +167,8 @@
             currentQuestions.forEach((q, idx) => {
                 let optsHtml = '';
                 q.options.forEach((opt, i) => {
-                    optsHtml += `<label><input type="radio" name="q${idx}" value="${i+1}"> (${i+1}) ${opt}</label>`;
+                    // 給每個 label 一個 ID 方便對答案時改變顏色
+                    optsHtml += `<label id="q${idx}-opt${i+1}"><input type="radio" name="q${idx}" value="${i+1}"> (${i+1}) ${opt}</label>`;
                 });
                 area.innerHTML += `
                     <div class="question-block">
@@ -187,18 +201,34 @@
             currentQuestions.forEach((q, idx) => {
                 const selected = document.querySelector(`input[name="q${idx}"]:checked`);
                 const resDiv = document.getElementById(`res${idx}`);
+                const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
+                
+                // 清除之前的顏色標示
+                for(let i=1; i<=4; i++) {
+                    const lbl = document.getElementById(`q${idx}-opt${i}`);
+                    if(lbl) lbl.className = '';
+                }
+
                 resDiv.style.display = 'block';
                 
                 if (!selected) {
                     resDiv.className = 'result-msg result-wrong';
-                    resDiv.innerHTML = `❌ 未作答 (正確答案是：${q.answer})`;
-                } else if (parseInt(selected.value) === q.answer) {
-                    resDiv.className = 'result-msg result-correct';
-                    resDiv.innerHTML = '✅ 答對了！';
-                    score++;
+                    resDiv.innerHTML = `❌ 未作答 (正確答案是：(${q.answer}) ${q.options[q.answer-1]})`;
+                    correctLabel.className = 'option-correct';
                 } else {
-                    resDiv.className = 'result-msg result-wrong';
-                    resDiv.innerHTML = `❌ 答錯了 (正確答案是：${q.answer} - ${q.options[q.answer-1]})`;
+                    const userVal = parseInt(selected.value);
+                    if (userVal === q.answer) {
+                        resDiv.className = 'result-msg result-correct';
+                        resDiv.innerHTML = '✅ 答對了！';
+                        correctLabel.className = 'option-correct';
+                        score++;
+                    } else {
+                        const wrongLabel = document.getElementById(`q${idx}-opt${userVal}`);
+                        resDiv.className = 'result-msg result-wrong';
+                        resDiv.innerHTML = `❌ 答錯了 (正確答案是：(${q.answer}) ${q.options[q.answer-1]})`;
+                        correctLabel.className = 'option-correct';
+                        wrongLabel.className = 'option-wrong';
+                    }
                 }
             });
             window.scrollTo(0, 0);
@@ -207,7 +237,3 @@
     </script>
 </body>
 </html>
-
-
-
-
