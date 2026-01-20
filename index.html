@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保險實務雲端題庫</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        
+        .setup-box {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .question-block {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .question-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #007bff; }
+        
+        .options label {
+            display: block;
+            margin: 8px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+        }
+        .options label:hover { background: #e2e6ea; }
+
+        .result-msg {
+            margin-top: 10px; padding: 10px; font-weight: bold; border-radius: 5px; display: none;
+        }
+        .result-correct { background: #d4edda; color: #155724; }
+        .result-wrong { background: #f8d7da; color: #721c24; }
+
+        button#submit-btn {
+            width: 100%; padding: 15px; font-size: 18px;
+            background: #28a745; color: white; border: none;
+            border-radius: 5px; cursor: pointer; margin-top: 20px;
+        }
+        button#submit-btn:hover { background: #218838; }
+
+        input#sheet-url { width: 100%; padding: 8px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>☁️ 保險實務雲端題庫</h1>
+
+    <div class="setup-box" id="setup-area">
+        <h3>🔗 設定題庫來源</h3>
+        <p>請貼上 Google 試算表「發布到網路」的 CSV 連結：</p>
+        <input type="text" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+        <button onclick="loadQuestions()" style="margin-top:10px; padding:5px 15px;">讀取題目</button>
+        <p style="font-size:12px; margin-top:5px;">* 設定一次後，系統會記住連結，下次打開自動讀取。</p>
+    </div>
+
+    <div id="quiz-area"></div>
+    <button id="submit-btn" onclick="checkAnswers()" style="display:none;">交卷對答案</button>
+
+    <script>
+        let questions = [];
+
+        // 頁面載入時嘗試讀取舊連結
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('sheet_url');
+            if (savedUrl) {
+                document.getElementById('sheet-url').value = savedUrl;
+                loadQuestions();
+            }
+        };
+
+        function loadQuestions() {
+            const url = document.getElementById('sheet-url').value.trim();
+            if (!url) { alert("請輸入網址"); return; }
+
+            // 簡單檢查網址格式
+            if (!url.includes("output=csv")) {
+                alert("網址格式怪怪的喔！請確定你是選擇「發布到網路」並選擇「CSV」格式。");
+            }
+
+            fetch(url)
+                .then(response => response.text())
+                .then(text => {
+                    parseCSV(text);
+                    localStorage.setItem('sheet_url', url); // 記住網址
+                    document.getElementById('setup-area').style.display = 'none'; // 隱藏設定區
+                    document.getElementById('submit-btn').style.display = 'block';
+                })
+                .catch(err => {
+                    alert("讀取失敗！請確認網址正確且已發布到網路。");
+                    console.error(err);
+                });
+        }
+
+        // 解析 CSV 格式 (處理逗號分隔)
+        function parseCSV(text) {
+            const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+            questions = [];
+
+            // 從第 1 列開始 (跳過標題列第 0 列)
+            for (let i = 1; i < rows.length; i++) {
+                // 簡易 CSV 切割 (注意：若題目內容本身有逗號可能會切錯，建議題目內少用全形逗號)
+                // 這裡使用正規表達式來處理較複雜的 CSV (例如被引號包起來的內容)
+                const cols = parseCSVRow(rows[i]);
+                
+                if (cols.length >= 6) {
+                    questions.push({
+                        title: cols[0],
+                        options: [cols[1], cols[2], cols[3], cols[4]],
+                        answer: parseInt(cols[5])
+                    });
+                }
+            }
+            renderQuiz();
+        }
+
+        // 處理 CSV 單行解析 (支援引號)
+        function parseCSVRow(row) {
+            const result = [];
+            let current = '';
+            let inQuote = false;
+            for (let i = 0; i < row.length; i++) {
+                const char = row[i];
+                if (char === '"') { inQuote = !inQuote; }
+                else if (char === ',' && !inQuote) {
+                    result.push(current.trim());
+                    current = '';
+                } else { current += char; }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function renderQuiz() {
+            const area = document.getElementById('quiz-area');
+            area.innerHTML = '';
+            
+            questions.forEach((q, idx) => {
+                let opts = '';
+                q.options.forEach((opt, i) => {
+                    opts += `<label><input type="radio" name="q${idx}" value="${i+1}"> (${i+1}) ${opt}</label>`;
+                });
+
+                area.innerHTML += `
+                    <div class="question-block">
+                        <div class="question-title">${idx+1}. ${q.title}</div>
+                        <div class="options">${opts}</div>
+                        <div class="result-msg" id="res${idx}"></div>
+                    </div>
+                `;
+            });
+            alert(`成功載入 ${questions.length} 題！`);
+        }
+
+        function checkAnswers() {
+            let correct = 0;
+            questions.forEach((q, idx) => {
+                const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+                const resDiv = document.getElementById(`res${idx}`);
+                resDiv.style.display = 'block';
+                
+                if (!selected) {
+                    resDiv.className = 'result-msg result-wrong';
+                    resDiv.innerHTML = `❌ 未作答 (答案：${q.answer})`;
+                } else {
+                    if (parseInt(selected.value) === q.answer) {
+                        resDiv.className = 'result-msg result-correct';
+                        resDiv.innerHTML = '✅ 答對了';
+                        correct++;
+                    } else {
+                        resDiv.className = 'result-msg result-wrong';
+                        resDiv.innerHTML = `❌ 答錯 (答案：${q.answer} - ${q.options[q.answer-1]})`;
+                    }
+                }
+            });
+            alert(`成績：${correct} / ${questions.length}`);
+        }
+    </script>
+</body>
+</html>
