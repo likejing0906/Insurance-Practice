@@ -81,8 +81,10 @@
         <strong>選擇科目：</strong>
         <select id="quiz-selector" onchange="loadSelectedQuiz()">
             <option value="">-- 請選擇題庫 --</option>
-            <option value="subject1">保險實務</option>
-            <option value="subject2">保險法規</option>
+            <option value="subject1">壽險考題</option>
+            <option value="subject2">產險考題</option>
+            <option value="subject2">金融市場考題</option>
+            <option value="subject2">職業道德考題</option>
             </select>
         <button onclick="loadSelectedQuiz()" style="padding: 7px 12px; cursor:pointer;">刷新題目</button>
     </div>
@@ -96,8 +98,10 @@
     <script>
         // --- 這裡設定你的 CSV 網址 ---
         const quizSources = {
-            "subject1": "這裡貼上你的【保險實務】CSV網址",
-            "subject2": "這裡貼上你的【保險法規】CSV網址"
+            "subject1": "這裡貼上你的【壽險考題】CSV網址",
+            "subject1": "這裡貼上你的【產險考題】CSV網址",
+            "subject1": "這裡貼上你的【金融市場考題】CSV網址",
+            "subject2": "這裡貼上你的【職業道德考題】CSV網址"
         };
 
         let currentQuestions = [];
@@ -203,3 +207,4 @@
     </script>
 </body>
 </html>
+
