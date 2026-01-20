@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>保險考試全能題庫</title>
+    <title>保險考試全能題庫 - 專業測驗版</title>
     <style>
         body {
             font-family: "Microsoft JhengHei", Arial, sans-serif;
@@ -22,20 +22,22 @@
         }
         .selector-box {
             background: white;
-            padding: 15px;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
+            gap: 15px;
         }
+        .control-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
         select {
-            padding: 8px 15px;
+            padding: 10px 15px;
             font-size: 16px;
             border-radius: 5px;
             border: 1px solid #ddd;
+            background: #fff;
         }
         .question-block {
             background: white;
@@ -44,9 +46,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        .question-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #1a73e8; }
-        
-        /* 選項基本樣式 */
+        .question-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #1a73e8; line-height: 1.5; }
         .options label {
             display: block;
             margin: 10px 0;
@@ -58,24 +58,11 @@
             transition: 0.2s;
         }
         .options label:hover { background: #e8f0fe; }
-
-        /* 對答案時的視覺效果 */
-        .option-correct {
-            background-color: #d4edda !important;
-            border-color: #28a745 !important;
-            font-weight: bold;
-        }
-        .option-wrong {
-            background-color: #f8d7da !important;
-            border-color: #dc3545 !important;
-        }
-
-        .result-msg {
-            margin-top: 10px; padding: 12px; font-weight: bold; border-radius: 6px; display: none;
-        }
+        .option-correct { background-color: #d4edda !important; border-color: #28a745 !important; font-weight: bold; }
+        .option-wrong { background-color: #f8d7da !important; border-color: #dc3545 !important; }
+        .result-msg { margin-top: 10px; padding: 12px; font-weight: bold; border-radius: 6px; display: none; }
         .result-correct { background: #d4edda; color: #155724; border-left: 5px solid #28a745; }
         .result-wrong { background: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
-        
         #submit-btn {
             width: 100%; padding: 18px; font-size: 20px;
             background: #28a745; color: white; border: none;
@@ -93,19 +80,29 @@
     </div>
 
     <div class="selector-box">
-        <strong>選擇科目：</strong>
-        <select id="quiz-selector" onchange="loadSelectedQuiz()">
-            <option value="">-- 請選擇題庫 --</option>
-            <option value="subject1">壽險考題</option>
-            <option value="subject2">產險考題</option>
-            <option value="subject3">金融市場考題</option>
-            <option value="subject4">職業道德考題</option>
-        </select>
-        <button onclick="loadSelectedQuiz()" style="padding: 7px 12px; cursor:pointer;">刷新題目</button>
+        <div class="control-row">
+            <strong>選擇科目：</strong>
+            <select id="quiz-selector">
+                <option value="">-- 請選擇科目 --</option>
+                <option value="subject1">壽險考題</option>
+                <option value="subject2">產險考題</option>
+                <option value="subject3">金融市場考題</option>
+                <option value="subject4">職業道德考題</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <strong>練習模式：</strong>
+            <select id="mode-selector">
+                <option value="all">全部練習 (依序)</option>
+                <option value="100">隨機 100 題 (測驗模式)</option>
+                <option value="50">隨機 50 題 (快速複習)</option>
+            </select>
+            <button onclick="loadSelectedQuiz()" style="padding: 10px 20px; cursor:pointer; background:#1a73e8; color:white; border:none; border-radius:5px;">開始練習</button>
+        </div>
     </div>
 
     <div id="quiz-area">
-        <p class="loading">請從上方選單選擇一個科目開始練習。</p>
+        <p class="loading">請選擇科目與模式後點擊「開始練習」。</p>
     </div>
     
     <button id="submit-btn" onclick="checkAnswers()" style="display:none;">交卷對答案</button>
@@ -121,40 +118,37 @@
         let currentQuestions = [];
 
         function loadSelectedQuiz() {
-            const select = document.getElementById('quiz-selector');
-            const subjectKey = select.value;
+            const subjectKey = document.getElementById('quiz-selector').value;
+            const mode = document.getElementById('mode-selector').value;
             const quizArea = document.getElementById('quiz-area');
             const submitBtn = document.getElementById('submit-btn');
 
-            if (!subjectKey) {
-                quizArea.innerHTML = '<p class="loading">請選擇一個科目。</p>';
-                submitBtn.style.display = 'none';
-                return;
-            }
+            if (!subjectKey) { alert("請先選擇科目！"); return; }
 
             const url = quizSources[subjectKey];
-            quizArea.innerHTML = '<p class="loading">題庫讀取中，請稍候...</p>';
+            quizArea.innerHTML = '<p class="loading">正在從雲端抓取題目...</p>';
             submitBtn.style.display = 'none';
 
             fetch(url)
                 .then(res => res.text())
                 .then(text => {
-                    parseAndRender(text);
+                    processQuestions(text, mode);
                     submitBtn.style.display = 'block';
+                    window.scrollTo(0, document.querySelector('.selector-box').offsetTop + 150);
                 })
                 .catch(err => {
-                    quizArea.innerHTML = '<p style="color:red;">讀取失敗，請確認該試算表是否已「發布到網路」並選擇 CSV 格式。</p>';
+                    quizArea.innerHTML = '<p style="color:red;">讀取失敗，請確認網路連線或 CSV 網址。</p>';
                 });
         }
 
-        function parseAndRender(csvText) {
+        function processQuestions(csvText, mode) {
             const rows = csvText.split('\n').map(r => r.trim()).filter(r => r);
-            currentQuestions = [];
+            let allFetched = [];
             
             for (let i = 1; i < rows.length; i++) {
                 const cols = parseCSVRow(rows[i]);
                 if (cols.length >= 6) {
-                    currentQuestions.push({
+                    allFetched.push({
                         title: cols[0],
                         options: [cols[1], cols[2], cols[3], cols[4]],
                         answer: parseInt(cols[5])
@@ -162,12 +156,22 @@
                 }
             }
 
+            // 處理模式
+            if (mode === "100" || mode === "50") {
+                const limit = parseInt(mode);
+                allFetched = allFetched.sort(() => Math.random() - 0.5).slice(0, limit);
+            }
+
+            currentQuestions = allFetched;
+            renderQuiz();
+        }
+
+        function renderQuiz() {
             const area = document.getElementById('quiz-area');
             area.innerHTML = '';
             currentQuestions.forEach((q, idx) => {
                 let optsHtml = '';
                 q.options.forEach((opt, i) => {
-                    // 給每個 label 一個 ID 方便對答案時改變顏色
                     optsHtml += `<label id="q${idx}-opt${i+1}"><input type="radio" name="q${idx}" value="${i+1}"> (${i+1}) ${opt}</label>`;
                 });
                 area.innerHTML += `
@@ -203,7 +207,6 @@
                 const resDiv = document.getElementById(`res${idx}`);
                 const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
                 
-                // 清除之前的顏色標示
                 for(let i=1; i<=4; i++) {
                     const lbl = document.getElementById(`q${idx}-opt${i}`);
                     if(lbl) lbl.className = '';
@@ -213,7 +216,7 @@
                 
                 if (!selected) {
                     resDiv.className = 'result-msg result-wrong';
-                    resDiv.innerHTML = `❌ 未作答 (正確答案是：(${q.answer}) ${q.options[q.answer-1]})`;
+                    resDiv.innerHTML = `❌ 未作答 (正確答案：(${q.answer}) ${q.options[q.answer-1]})`;
                     correctLabel.className = 'option-correct';
                 } else {
                     const userVal = parseInt(selected.value);
@@ -225,14 +228,14 @@
                     } else {
                         const wrongLabel = document.getElementById(`q${idx}-opt${userVal}`);
                         resDiv.className = 'result-msg result-wrong';
-                        resDiv.innerHTML = `❌ 答錯了 (正確答案是：(${q.answer}) ${q.options[q.answer-1]})`;
+                        resDiv.innerHTML = `❌ 答錯了 (正確答案：(${q.answer}) ${q.options[q.answer-1]})`;
                         correctLabel.className = 'option-correct';
                         wrongLabel.className = 'option-wrong';
                     }
                 }
             });
             window.scrollTo(0, 0);
-            alert(`測驗結束！您的得分是：${Math.round(score/currentQuestions.length*100)} 分`);
+            alert(`測驗結束！\n答對：${score} / ${currentQuestions.length}\n得分：${Math.round(score/currentQuestions.length*100)} 分`);
         }
     </script>
 </body>
