@@ -159,19 +159,19 @@
                 
                 if (!selected) {
                     resDiv.className = 'result-msg result-wrong';
-                    resDiv.innerHTML = `❌ 未作答 (正確答案：(${q.answer}) ${q.options[q.answer-1]})`;
+                    resDiv.innerHTML = `❌ 未作答 正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
                     correctLabel.className = 'option-correct';
                 } else {
                     const userVal = parseInt(selected.value);
                     if (userVal === q.answer) {
                         resDiv.className = 'result-msg result-correct';
-                        resDiv.innerHTML = '✅ 答對了！';
+                        resDiv.innerHTML = '✅ ';
                         correctLabel.className = 'option-correct';
                         score++;
                     } else {
                         const wrongLabel = document.getElementById(`q${idx}-opt${userVal}`);
                         resDiv.className = 'result-msg result-wrong';
-                        resDiv.innerHTML = `❌ 答錯了 (正確答案：(${q.answer}) ${q.options[q.answer-1]})`;
+                        resDiv.innerHTML = `❌ 正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
                         correctLabel.className = 'option-correct';
                         wrongLabel.className = 'option-wrong';
                     }
