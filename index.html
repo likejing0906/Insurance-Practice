@@ -11,9 +11,7 @@
         .selector-box {background: #fff;padding: 20px;border-radius: 8px;box-shadow: 0 2px 10px rgba(0,0,0,0.1);margin-bottom: 20px;display: flex;flex-flow: wrap;justify-content: center;gap: 15px;}
         .control-row {display: flex;flex-flow: wrap;align-items: center;justify-content: center;gap: 10px;}
         select {padding: 10px 15px;font-size: 16px;border-radius: 5px;border: 1px solid #ddd;background: #fff;}
-
-. 問題區塊  { 背景 ：#fff; 護墊：20px; 邊界半徑 ：8px; 框影：0 2px 4 px rgba（0,0,0,0.1）; 邊界至底部 ：20px;}  
-        .question-title {font-size: 18px;font-weight: 600;margin-bottom: 12px;color: #000;line-height: 1.5;}
+        .question-title {font-size: 18px;font-weight: 500;margin-bottom: 12px;color: #000;line-height: 1.5;}
         .options label {display: block;margin: 10px 0;padding: 12px;background: #f8f9fa;border-radius: 6px;cursor: pointer;border: 2px solid transparent;transition: all ease 0.2s;}
         .options label:hover {background: #e8f0fe;}
         .option-correct {background-color: #d4edda !important;border-color: #28a745 !important;font-weight: 600;}
@@ -42,9 +40,9 @@
         <div class="control-row">
             <span>練習模式：</span>
             <select id="mode-selector">
-                <option value="all">全部練習 (依序)</option>
-                <option value="100">隨機 100 題 (測驗模式)</option>
                 <option value="50">隨機 50 題 (快速複習)</option>
+                <option value="100">隨機 100 題 (測驗模式)</option>
+                <option value="all">全部練習 (依序)</option>
             </select>
             <button onclick="loadSelectedQuiz()" style="padding: 10px 20px; cursor:pointer; background:#1a73e8; color:white; border:none; border-radius:5px;">開始練習</button>
         </div>
