@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes,maximum-scale=5.0,minimum-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100..900&display=swap" rel="stylesheet">
+    <title>保險考試全能題庫</title>
+    <style>
+        body {font-family: "Noto Sans TC", sans-serif;width: 100%;max-width: 800px;margin: 0 auto;padding: 20px;background-color: #f0f2f5;box-sizing: border-box;}
+        .header-section {text-align: center;background: #2c3e50;color: #fff;padding: 20px;border-radius: 10px;margin-bottom: 20px;}
+        .selector-box {background: #fff;padding: 20px;border-radius: 8px;box-shadow: 0 2px 10px rgba(0,0,0,0.1);margin-bottom: 20px;display: flex;flex-flow: wrap;justify-content: center;gap: 15px;}
+        .control-row {display: flex;flex-flow: wrap;align-items: center;justify-content: center;gap: 10px;}
+        select {padding: 10px 15px;font-size: 16px;border-radius: 5px;border: 1px solid #ddd;background: #fff;}
+        .question-title {font-size: 18px;font-weight: 500;margin-bottom: 12px;color: #000;line-height: 1.5;}
+        .options label {display: block;margin: 10px 0;padding: 12px;background: #f8f9fa;border-radius: 6px;cursor: pointer;border: 2px solid transparent;transition: all ease 0.2s;}
+        .options label:hover {background: #e8f0fe;}
+        .option-correct {background-color: #d4edda !important;border-color: #28a745 !important;font-weight: 600;}
+        .option-wrong {background-color: #f8d7da !important;border-color: #dc3545 !important;}
+        .result-msg {margin-top: 10px;padding: 12px;font-weight: 600;border-radius: 6px;display: none;}
+        .result-correct {background: #d4edda;color: #155724;border-left: 5px solid #28a745;}
+        .result-wrong {background: #f8d7da;color: #721c24;border-left: 5px solid #dc3545;}
+        #submit-btn {width: 100%;padding: 18px;font-size: 20px;background: #28a745;color: #fff;border: none;border-radius: 8px;cursor: pointer;margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        #submit-btn:hover {background: #218838;}
+        .loading {text-align: center;color: #666;font-style: italic;}
+        /* 新增：被禁用的選項讓滑鼠顯示為禁止符號 */
+        input:disabled {cursor: not-allowed;}
+    </style>
+</head>
+<body>
+    <div class="header-section">
+        <h1>📖 保險考試全能題庫</h1>
+    </div>
+    <div class="selector-box">
+        <div class="control-row">
+            <span>選擇科目：</span>
+            <select id="quiz-selector">
+                <option value="">-- 請選擇科目 --</option>
+                <option value="subject1">壽險-保險實務</option>
+                <option value="subject2">壽險-保險法規</option>
+                <option value="subject3">產險-保險法規</option>
+                <option value="subject4">產險-保險實務</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <span>練習模式：</span>
+            <select id="mode-selector">
+                <option value="50">隨機 50 題 (快速複習)</option>
+                <option value="100">隨機 100 題 (測驗模式)</option>
+                <option value="all">全部練習 (依序)</option>
+            </select>
+            <button onclick="loadSelectedQuiz()" style="padding: 10px 20px; cursor:pointer; background:#1a73e8; color:white; border:none; border-radius:5px;">開始練習</button>
+        </div>
+    </div>
+    <div id="quiz-area">
+        <p class="loading">請選擇科目與模式後點擊「開始練習」。</p>
+    </div>
+    <button id="submit-btn" onclick="checkFinalScore()" style="display:none;">結束並計算總分</button>
+
+    <script>
+        const quizSources = {
+            "subject1": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1620305954&single=true&output=csv",
+            "subject2": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=188500512&single=true&output=csv",
+            "subject3": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1899441663&single=true&output=csv",
+            "subject4": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=219621369&single=true&output=csv",
+        };
+
+        let currentQuestions = [];
+
+        function loadSelectedQuiz() {
+            const subjectKey = document.getElementById('quiz-selector').value;
+            const mode = document.getElementById('mode-selector').value;
+            const quizArea = document.getElementById('quiz-area');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (!subjectKey) { alert("請先選擇科目！"); return; }
+
+            const url = quizSources[subjectKey];
+            quizArea.innerHTML = '<p class="loading">正在從雲端抓取題目...</p>';
+            submitBtn.style.display = 'none';
+
+            fetch(url)
+                .then(res => res.text())
+                .then(text => {
+                    processQuestions(text, mode);
+                    submitBtn.style.display = 'block';
+                    window.scrollTo(0, document.querySelector('.selector-box').offsetTop + 150);
+                })
+                .catch(err => {
+                    quizArea.innerHTML = '<p style="color:red;">讀取失敗，請確認網路連線或 CSV 網址。</p>';
+                });
+        }
+
+        function processQuestions(csvText, mode) {
+            const rows = csvText.split('\n').map(r => r.trim()).filter(r => r);
+            let allFetched = [];
+            
+            for (let i = 1; i < rows.length; i++) {
+                const cols = parseCSVRow(rows[i]);
+                if (cols.length >= 6) {
+                    allFetched.push({
+                        title: cols[0],
+                        options: [cols[1], cols[2], cols[3], cols[4]],
+                        answer: parseInt(cols[5])
+                    });
+                }
+            }
+
+            if (mode === "100" || mode === "50") {
+                const limit = parseInt(mode);
+                allFetched = allFetched.sort(() => Math.random() - 0.5).slice(0, limit);
+            }
+
+            currentQuestions = allFetched;
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            const area = document.getElementById('quiz-area');
+            area.innerHTML = '';
+            currentQuestions.forEach((q, idx) => {
+                let optsHtml = '';
+                q.options.forEach((opt, i) => {
+                    // 修改處：加入 onchange 觸發 checkSingleAnswer，並將 index 傳入
+                    optsHtml += `<label id="q${idx}-opt${i+1}"><input type="radio" name="q${idx}" value="${i+1}" onchange="checkSingleAnswer(${idx}, ${i+1})"> (${i+1}) ${opt}</label>`;
+                });
+                area.innerHTML += `
+                    <div class="question-block">
+                        <div class="question-title">${idx+1}. ${q.title}</div>
+                        <div class="options">${optsHtml}</div>
+                        <div class="result-msg" id="res${idx}"></div>
+                    </div>
+                `;
+            });
+        }
+
+        function parseCSVRow(row) {
+            const result = [];
+            let current = '';
+            let inQuote = false;
+            for (let i = 0; i < row.length; i++) {
+                const char = row[i];
+                if (char === '"') inQuote = !inQuote;
+                else if (char === ',' && !inQuote) {
+                    result.push(current.trim());
+                    current = '';
+                } else current += char;
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        // 新增函數：點擊選項後立刻檢查該題答案
+        function checkSingleAnswer(idx, userVal) {
+            const q = currentQuestions[idx];
+            const resDiv = document.getElementById(`res${idx}`);
+            const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
+            const selectedLabel = document.getElementById(`q${idx}-opt${userVal}`);
+
+            resDiv.style.display = 'block';
+
+            if (userVal === q.answer) {
+                resDiv.className = 'result-msg result-correct';
+                resDiv.innerHTML = '✅ 答對了！';
+                correctLabel.className = 'option-correct';
+            } else {
+                resDiv.className = 'result-msg result-wrong';
+                resDiv.innerHTML = `❌ 答錯了！正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
+                correctLabel.className = 'option-correct';
+                selectedLabel.className = 'option-wrong';
+            }
+
+            // 鎖定該題所有選項，防止作答後修改
+            const radios = document.querySelectorAll(`input[name="q${idx}"]`);
+            radios.forEach(radio => radio.disabled = true);
+        }
+
+        // 修改函數：最後結算總分時使用
+        function checkFinalScore() {
+            let score = 0;
+            currentQuestions.forEach((q, idx) => {
+                const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+                const resDiv = document.getElementById(`res${idx}`);
+                const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
+                
+                if (!selected) {
+                    // 找出尚未作答的題目並標示
+                    resDiv.style.display = 'block';
+                    resDiv.className = 'result-msg result-wrong';
+                    resDiv.innerHTML = `❌ 未作答 正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
+                    correctLabel.className = 'option-correct';
+                } else {
+                    const userVal = parseInt(selected.value);
+                    if (userVal === q.answer) {
+                        score++;
+                    }
+                }
+                
+                // 結算後將所有題目鎖定
+                const radios = document.querySelectorAll(`input[name="q${idx}"]`);
+                radios.forEach(radio => radio.disabled = true);
+            });
+            
+            window.scrollTo(0, 0);
+            alert(`測驗結束！\n答對：${score} / ${currentQuestions.length}\n得分：${Math.round(score/currentQuestions.length*100)} 分`);
+        }
+    </script>
+</body>
+</html>
