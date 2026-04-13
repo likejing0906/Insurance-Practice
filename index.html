@@ -88,11 +88,12 @@
         }
 
         function processQuestions(csvText, mode) {
-            const rows = csvText.split('\n').map(r => r.trim()).filter(r => r);
+            // 使用新的解析函數，正確處理儲存格內的換行
+            const rows = parseCSVFull(csvText);
             let allFetched = [];
-            
+
             for (let i = 1; i < rows.length; i++) {
-                const cols = parseCSVRow(rows[i]);
+                const cols = rows[i];
                 if (cols.length >= 6) {
                     allFetched.push({
                         title: cols[0],
@@ -110,6 +111,54 @@
 
             currentQuestions = allFetched;
             renderQuiz();
+        }
+
+        // 新增：解析整個 CSV 文本的函數，能正確辨識雙引號內的換行符號
+        function parseCSVFull(text) {
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let inQuote = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (inQuote && nextChar === '"') {
+                        // 處理 CSV 中用兩個雙引號跳脫的雙引號 (例如 "")
+                        currentCell += '"';
+                        i++; // 跳過下一個雙引號
+                    } else {
+                        inQuote = !inQuote;
+                    }
+                } else if (char === ',' && !inQuote) {
+                    // 遇到逗號且不在引號內，代表一個儲存格結束
+                    currentRow.push(currentCell.trim());
+                    currentCell = '';
+                } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuote) {
+                    // 遇到換行且不在引號內，代表一整列結束
+                    if (char === '\r') i++; // 略過 \r\n 裡的 \n
+                    currentRow.push(currentCell.trim());
+                    // 確保不是空行才加入
+                    if (currentRow.length > 1 || currentRow[0] !== '') {
+                        rows.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+
+            // 把最後一行推入 (防止檔案結尾沒有換行符號)
+            if (currentCell !== '' || currentRow.length > 0) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.length > 1 || currentRow[0] !== '') {
+                    rows.push(currentRow);
+                }
+            }
+            return rows;
         }
 
         function renderQuiz() {
@@ -130,36 +179,20 @@
             });
         }
 
-        function parseCSVRow(row) {
-            const result = [];
-            let current = '';
-            let inQuote = false;
-            for (let i = 0; i < row.length; i++) {
-                const char = row[i];
-                if (char === '"') inQuote = !inQuote;
-                else if (char === ',' && !inQuote) {
-                    result.push(current.trim());
-                    current = '';
-                } else current += char;
-            }
-            result.push(current.trim());
-            return result;
-        }
-
         function checkAnswers() {
             let score = 0;
             currentQuestions.forEach((q, idx) => {
                 const selected = document.querySelector(`input[name="q${idx}"]:checked`);
                 const resDiv = document.getElementById(`res${idx}`);
                 const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
-                
+
                 for(let i=1; i<=4; i++) {
                     const lbl = document.getElementById(`q${idx}-opt${i}`);
                     if(lbl) lbl.className = '';
                 }
 
                 resDiv.style.display = 'block';
-                
+
                 if (!selected) {
                     resDiv.className = 'result-msg result-wrong';
                     resDiv.innerHTML = `❌ 未作答 正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
