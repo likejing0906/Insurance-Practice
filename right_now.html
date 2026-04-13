@@ -57,152 +57,180 @@
     <button id="submit-btn" onclick="checkFinalScore()" style="display:none;">結束並計算總分</button>
 
     <script>
-        const quizSources = {
-            "subject1": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1620305954&single=true&output=csv",
-            "subject2": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=188500512&single=true&output=csv",
-            "subject3": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1899441663&single=true&output=csv",
-            "subject4": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=219621369&single=true&output=csv",
-        };
+    const quizSources = {
+        "subject1": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1620305954&single=true&output=csv",
+        "subject2": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=188500512&single=true&output=csv",
+        "subject3": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=1899441663&single=true&output=csv",
+        "subject4": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtUmxz2sZwuX6Tg4a7D8i5m6OnxaFFm0wCNe0oAiUFdLV373CAl_wFAfSs9SrzrkKpx9gXtN-_Zf4R/pub?gid=219621369&single=true&output=csv",
+    };
 
-        let currentQuestions = [];
+    let currentQuestions = [];
 
-        function loadSelectedQuiz() {
-            const subjectKey = document.getElementById('quiz-selector').value;
-            const mode = document.getElementById('mode-selector').value;
-            const quizArea = document.getElementById('quiz-area');
-            const submitBtn = document.getElementById('submit-btn');
+    function loadSelectedQuiz() {
+        const subjectKey = document.getElementById('quiz-selector').value;
+        const mode = document.getElementById('mode-selector').value;
+        const quizArea = document.getElementById('quiz-area');
+        const submitBtn = document.getElementById('submit-btn');
 
-            if (!subjectKey) { alert("請先選擇科目！"); return; }
+        if (!subjectKey) { alert("請先選擇科目！"); return; }
 
-            const url = quizSources[subjectKey];
-            quizArea.innerHTML = '<p class="loading">正在從雲端抓取題目...</p>';
-            submitBtn.style.display = 'none';
+        const url = quizSources[subjectKey];
+        quizArea.innerHTML = '<p class="loading">正在從雲端抓取題目...</p>';
+        submitBtn.style.display = 'none';
 
-            fetch(url)
-                .then(res => res.text())
-                .then(text => {
-                    processQuestions(text, mode);
-                    submitBtn.style.display = 'block';
-                    window.scrollTo(0, document.querySelector('.selector-box').offsetTop + 150);
-                })
-                .catch(err => {
-                    quizArea.innerHTML = '<p style="color:red;">讀取失敗，請確認網路連線或 CSV 網址。</p>';
-                });
-        }
-
-        function processQuestions(csvText, mode) {
-            const rows = csvText.split('\n').map(r => r.trim()).filter(r => r);
-            let allFetched = [];
-            
-            for (let i = 1; i < rows.length; i++) {
-                const cols = parseCSVRow(rows[i]);
-                if (cols.length >= 6) {
-                    allFetched.push({
-                        title: cols[0],
-                        options: [cols[1], cols[2], cols[3], cols[4]],
-                        answer: parseInt(cols[5])
-                    });
-                }
-            }
-
-            if (mode === "100" || mode === "50") {
-                const limit = parseInt(mode);
-                allFetched = allFetched.sort(() => Math.random() - 0.5).slice(0, limit);
-            }
-
-            currentQuestions = allFetched;
-            renderQuiz();
-        }
-
-        function renderQuiz() {
-            const area = document.getElementById('quiz-area');
-            area.innerHTML = '';
-            currentQuestions.forEach((q, idx) => {
-                let optsHtml = '';
-                q.options.forEach((opt, i) => {
-                    // 修改處：加入 onchange 觸發 checkSingleAnswer，並將 index 傳入
-                    optsHtml += `<label id="q${idx}-opt${i+1}"><input type="radio" name="q${idx}" value="${i+1}" onchange="checkSingleAnswer(${idx}, ${i+1})"> (${i+1}) ${opt}</label>`;
-                });
-                area.innerHTML += `
-                    <div class="question-block">
-                        <div class="question-title">${idx+1}. ${q.title}</div>
-                        <div class="options">${optsHtml}</div>
-                        <div class="result-msg" id="res${idx}"></div>
-                    </div>
-                `;
+        fetch(url)
+            .then(res => res.text())
+            .then(text => {
+                processQuestions(text, mode);
+                submitBtn.style.display = 'block';
+                window.scrollTo(0, document.querySelector('.selector-box').offsetTop + 150);
+            })
+            .catch(err => {
+                quizArea.innerHTML = '<p style="color:red;">讀取失敗，請確認網路連線或 CSV 網址。</p>';
             });
-        }
+    }
 
-        function parseCSVRow(row) {
-            const result = [];
-            let current = '';
-            let inQuote = false;
-            for (let i = 0; i < row.length; i++) {
-                const char = row[i];
-                if (char === '"') inQuote = !inQuote;
-                else if (char === ',' && !inQuote) {
-                    result.push(current.trim());
-                    current = '';
-                } else current += char;
+    function processQuestions(csvText, mode) {
+        // 改用新的完整解析函數，解決儲存格內含有換行符號的問題
+        const rows = parseCSVFull(csvText);
+        let allFetched = [];
+        
+        // i=1 跳過標題列
+        for (let i = 1; i < rows.length; i++) {
+            const cols = rows[i];
+            if (cols.length >= 6) {
+                allFetched.push({
+                    title: cols[0],
+                    options: [cols[1], cols[2], cols[3], cols[4]],
+                    answer: parseInt(cols[5])
+                });
             }
-            result.push(current.trim());
-            return result;
         }
 
-        // 新增函數：點擊選項後立刻檢查該題答案
-        function checkSingleAnswer(idx, userVal) {
-            const q = currentQuestions[idx];
+        if (mode === "100" || mode === "50") {
+            const limit = parseInt(mode);
+            allFetched = allFetched.sort(() => Math.random() - 0.5).slice(0, limit);
+        }
+
+        currentQuestions = allFetched;
+        renderQuiz();
+    }
+
+    // 新增：解析整個 CSV 文本的函數，能正確辨識雙引號內的換行符號
+    function parseCSVFull(text) {
+        const rows = [];
+        let currentRow = [];
+        let currentCell = '';
+        let inQuote = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i + 1];
+
+            if (char === '"') {
+                if (inQuote && nextChar === '"') {
+                    // 處理 CSV 中用兩個雙引號跳脫的雙引號 (例如 "")
+                    currentCell += '"';
+                    i++; // 跳過下一個雙引號
+                } else {
+                    inQuote = !inQuote;
+                }
+            } else if (char === ',' && !inQuote) {
+                // 遇到逗號且不在引號內，代表一個儲存格結束
+                currentRow.push(currentCell.trim());
+                currentCell = '';
+            } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuote) {
+                // 遇到換行且不在引號內，代表一整列結束
+                if (char === '\r') i++; // 略過 \r\n 裡的 \n
+                currentRow.push(currentCell.trim());
+                // 確保不是空行才加入
+                if (currentRow.length > 1 || currentRow[0] !== '') {
+                    rows.push(currentRow);
+                }
+                currentRow = [];
+                currentCell = '';
+            } else {
+                currentCell += char;
+            }
+        }
+        
+        // 把最後一行推入 (防止檔案結尾沒有換行符號)
+        if (currentCell !== '' || currentRow.length > 0) {
+            currentRow.push(currentCell.trim());
+            if (currentRow.length > 1 || currentRow[0] !== '') {
+                rows.push(currentRow);
+            }
+        }
+        return rows;
+    }
+
+    function renderQuiz() {
+        const area = document.getElementById('quiz-area');
+        area.innerHTML = '';
+        currentQuestions.forEach((q, idx) => {
+            let optsHtml = '';
+            q.options.forEach((opt, i) => {
+                optsHtml += `<label id="q${idx}-opt${i+1}"><input type="radio" name="q${idx}" value="${i+1}" onchange="checkSingleAnswer(${idx}, ${i+1})"> (${i+1}) ${opt}</label>`;
+            });
+            area.innerHTML += `
+                <div class="question-block">
+                    <div class="question-title">${idx+1}. ${q.title}</div>
+                    <div class="options">${optsHtml}</div>
+                    <div class="result-msg" id="res${idx}"></div>
+                </div>
+            `;
+        });
+    }
+
+    function checkSingleAnswer(idx, userVal) {
+        const q = currentQuestions[idx];
+        const resDiv = document.getElementById(`res${idx}`);
+        const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
+        const selectedLabel = document.getElementById(`q${idx}-opt${userVal}`);
+
+        resDiv.style.display = 'block';
+
+        if (userVal === q.answer) {
+            resDiv.className = 'result-msg result-correct';
+            resDiv.innerHTML = '✅ 答對了！';
+            correctLabel.className = 'option-correct';
+        } else {
+            resDiv.className = 'result-msg result-wrong';
+            resDiv.innerHTML = `❌ 答錯了！正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
+            correctLabel.className = 'option-correct';
+            selectedLabel.className = 'option-wrong';
+        }
+
+        const radios = document.querySelectorAll(`input[name="q${idx}"]`);
+        radios.forEach(radio => radio.disabled = true);
+    }
+
+    function checkFinalScore() {
+        let score = 0;
+        currentQuestions.forEach((q, idx) => {
+            const selected = document.querySelector(`input[name="q${idx}"]:checked`);
             const resDiv = document.getElementById(`res${idx}`);
             const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
-            const selectedLabel = document.getElementById(`q${idx}-opt${userVal}`);
-
-            resDiv.style.display = 'block';
-
-            if (userVal === q.answer) {
-                resDiv.className = 'result-msg result-correct';
-                resDiv.innerHTML = '✅ 答對了！';
+            
+            if (!selected) {
+                resDiv.style.display = 'block';
+                resDiv.className = 'result-msg result-wrong';
+                resDiv.innerHTML = `❌ 未作答 正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
                 correctLabel.className = 'option-correct';
             } else {
-                resDiv.className = 'result-msg result-wrong';
-                resDiv.innerHTML = `❌ 答錯了！正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
-                correctLabel.className = 'option-correct';
-                selectedLabel.className = 'option-wrong';
+                const userVal = parseInt(selected.value);
+                if (userVal === q.answer) {
+                    score++;
+                }
             }
-
-            // 鎖定該題所有選項，防止作答後修改
+            
             const radios = document.querySelectorAll(`input[name="q${idx}"]`);
             radios.forEach(radio => radio.disabled = true);
-        }
-
-        // 修改函數：最後結算總分時使用
-        function checkFinalScore() {
-            let score = 0;
-            currentQuestions.forEach((q, idx) => {
-                const selected = document.querySelector(`input[name="q${idx}"]:checked`);
-                const resDiv = document.getElementById(`res${idx}`);
-                const correctLabel = document.getElementById(`q${idx}-opt${q.answer}`);
-                
-                if (!selected) {
-                    // 找出尚未作答的題目並標示
-                    resDiv.style.display = 'block';
-                    resDiv.className = 'result-msg result-wrong';
-                    resDiv.innerHTML = `❌ 未作答 正確答案：(${q.answer}) ${q.options[q.answer-1]}`;
-                    correctLabel.className = 'option-correct';
-                } else {
-                    const userVal = parseInt(selected.value);
-                    if (userVal === q.answer) {
-                        score++;
-                    }
-                }
-                
-                // 結算後將所有題目鎖定
-                const radios = document.querySelectorAll(`input[name="q${idx}"]`);
-                radios.forEach(radio => radio.disabled = true);
-            });
-            
-            window.scrollTo(0, 0);
-            alert(`測驗結束！\n答對：${score} / ${currentQuestions.length}\n得分：${Math.round(score/currentQuestions.length*100)} 分`);
-        }
-    </script>
+        });
+        
+        window.scrollTo(0, 0);
+        alert(`測驗結束！\n答對：${score} / ${currentQuestions.length}\n得分：${Math.round(score/currentQuestions.length*100)} 分`);
+    }
+</script>
 </body>
 </html>
